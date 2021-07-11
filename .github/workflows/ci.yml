@@ -12,6 +12,11 @@ jobs:
       - uses: actions/setup-go@v2
         with:
           go-version: '1.16'
+      - uses: actions/checkout@v2
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v2
+        with:
+          version: latest
       - name: Run CI
         run: make ci
       - name: Upload coverage to codecov.io
