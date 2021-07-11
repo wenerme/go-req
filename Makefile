@@ -1,5 +1,5 @@
 
-ci: lint cover
+ci: cover
 
 fmt:
 	gofumpt -w `find . -type f -name '*.go' -not -path "./vendor/*"`
