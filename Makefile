@@ -1,5 +1,5 @@
 
-ci: lint test
+ci: lint cover
 
 fmt:
 	gofumpt -w `find . -type f -name '*.go' -not -path "./vendor/*"`
@@ -10,3 +10,8 @@ lint:
 
 test:
 	go test ./...
+
+.PHONY: cover
+cover:
+	go test -race -coverprofile=cover.out -coverpkg=./... ./...
+	go tool cover -html=cover.out -o cover.html
