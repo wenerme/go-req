@@ -73,6 +73,9 @@ func TestHookPreserve(t *testing.T) {
 	mux.HandleFunc("/echo", func(writer http.ResponseWriter, request *http.Request) {
 		_, _ = io.Copy(writer, request.Body)
 	})
+	mux.HandleFunc("/query", func(writer http.ResponseWriter, request *http.Request) {
+		_, _ = writer.Write([]byte(request.URL.RawQuery))
+	})
 	server := httptest.NewServer(mux)
 	defer server.Close()
 	{
@@ -122,6 +125,38 @@ func TestHookPreserve(t *testing.T) {
 		}).WithHook(req.JSONDecode, req.JSONEncode).Fetch(&out)
 		assert.NoError(t, err)
 		assert.Equal(t, "wener", out.Name)
+	}
+	{
+		out, _, err := r.With(req.Request{
+			URL:  "/echo",
+			Body: HelloReq{Name: "wener"},
+		}).WithHook(req.JSONEncode).FetchString()
+		assert.NoError(t, err)
+		assert.Equal(t, `{"Name":"wener"}`, out)
+	}
+	{
+		out, _, err := r.With(req.Request{
+			URL:  "/echo",
+			Body: HelloReq{Name: "wener"},
+		}).WithHook(req.FormEncode).FetchString()
+		assert.NoError(t, err)
+		assert.Equal(t, `Name=wener`, out)
+	}
+	{
+		out, _, err := r.With(req.Request{
+			URL:   "/query",
+			Query: HelloReq{Name: "wener"},
+		}).FetchString()
+		assert.NoError(t, err)
+		assert.Equal(t, `Name=wener`, out)
+	}
+	{
+		out, _, err := r.With(req.Request{
+			URL:      "/query",
+			RawQuery: "a=1",
+		}).FetchString()
+		assert.NoError(t, err)
+		assert.Equal(t, `a=1`, out)
 	}
 }
 

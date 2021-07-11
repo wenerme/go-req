@@ -16,15 +16,16 @@ import (
 )
 
 type Request struct {
-	Method  string
-	BaseURL string
-	URL     string
-	Query   interface{}
-	RawBody []byte
-	GetBody func() (io.ReadCloser, error)
-	Body    interface{}
-	Header  http.Header
-	Context context.Context
+	Method   string
+	BaseURL  string
+	URL      string
+	Query    interface{}
+	RawQuery string
+	RawBody  []byte
+	GetBody  func() (io.ReadCloser, error)
+	Body     interface{}
+	Header   http.Header
+	Context  context.Context
 
 	Values    Values // Extra options for customized process - non string option use Context
 	LastError error
@@ -145,6 +146,8 @@ func (r Request) With(o Request) Request {
 	}
 
 	switch {
+	case o.RawQuery != "":
+		r.RawQuery = o.RawQuery
 	case r.Query == nil:
 		r.Query = o.Query
 	case o.Query == nil:
@@ -182,6 +185,19 @@ func (r Request) Do() (*http.Response, error) {
 		err = re.Extension.OnResponse(response)
 	}
 	return response, err
+}
+func (r Request) FetchBytes() ([]byte, *http.Response, error) {
+	response, err := r.Do()
+	if err != nil {
+		return nil, nil, err
+	}
+	defer response.Body.Close()
+	body, err := io.ReadAll(response.Body)
+	return body, response, err
+}
+func (r Request) FetchString() (string, *http.Response, error) {
+	body, response, err := r.FetchBytes()
+	return string(body), response, err
 }
 func (r Request) Fetch(out ...interface{}) (*http.Response, error) {
 	response, err := r.Do()
@@ -261,6 +277,14 @@ func (r *Request) Reconcile() error {
 	if r.Method == "" {
 		r.Method = http.MethodGet
 	}
+	if r.RawQuery == "" && r.Query != nil {
+		v, err := ValuesOf(r.Query)
+		if err != nil {
+			return errors.Wrap(err, "build query values")
+		}
+		r.RawQuery = v.Encode()
+	}
+
 	{
 		u := r.URL
 		if strings.HasPrefix(u, "/") && r.BaseURL != "" {
@@ -270,17 +294,16 @@ func (r *Request) Reconcile() error {
 			u = r.BaseURL
 		}
 
-		v, err := ValuesOf(r.Query)
-		if err != nil {
-			return errors.Wrap(err, "build query values")
-		}
-
 		parsed, err := url.Parse(u)
 		if err != nil {
 			return errors.Wrap(err, "invalid url")
 		}
 
-		if len(v) > 0 {
+		if r.RawQuery != "" {
+			v, err := url.ParseQuery(r.RawQuery)
+			if err != nil {
+				return errors.Wrap(err, "parse query")
+			}
 			parsed.RawQuery = (url.Values)(mergeMapSliceString(v, parsed.Query())).Encode()
 			u = parsed.String()
 		}
