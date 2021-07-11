@@ -56,7 +56,7 @@ func (e *Extension) With(h ...Hook) {
 
 func (e Extension) Decode(ctx context.Context, body []byte, out interface{}) error {
 	for _, v := range e.Hooks {
-		if v.Encode != nil {
+		if v.Decode != nil {
 			return v.Decode(ctx, body, out)
 		}
 	}

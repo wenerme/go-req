@@ -1,6 +1,7 @@
 package req_test
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -69,6 +70,9 @@ func TestHookPreserve(t *testing.T) {
 	mux.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
 		_, _ = writer.Write([]byte("OK"))
 	})
+	mux.HandleFunc("/echo", func(writer http.ResponseWriter, request *http.Request) {
+		_, _ = io.Copy(writer, request.Body)
+	})
 	server := httptest.NewServer(mux)
 	defer server.Close()
 	{
@@ -106,4 +110,27 @@ func TestHookPreserve(t *testing.T) {
 		assert.NoError(t, err)
 		assert.True(t, run)
 	}
+
+	r := req.Request{
+		BaseURL: server.URL,
+	}
+	{
+		var out HelloReq
+		_, err := r.With(req.Request{
+			URL:  "/echo",
+			Body: HelloReq{Name: "wener"},
+		}).WithHook(req.JSONDecode, req.JSONEncode).Fetch(&out)
+		assert.NoError(t, err)
+		assert.Equal(t, "wener", out.Name)
+	}
+}
+
+type HelloReq struct {
+	Name string
+}
+
+type rtFunc func(*http.Request) (*http.Response, error)
+
+func (f rtFunc) RoundTrip(r *http.Request) (*http.Response, error) {
+	return f(r)
 }

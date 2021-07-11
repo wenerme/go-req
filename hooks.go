@@ -64,19 +64,13 @@ func DebugHook(o *DebugOptions) Hook {
 		Name:  "Debug",
 		Order: -100,
 		OnRequest: func(r *http.Request) error {
-			dump, err := httputil.DumpRequestOut(r, o.Body)
-			if err != nil {
-				return err
-			}
+			dump, _ := httputil.DumpRequestOut(r, o.Body)
 			_, _ = fmt.Fprintln(o.Out, "->", r.Method, r.URL)
 			_, _ = fmt.Fprintln(o.Out, string(dump))
 			return nil
 		},
 		OnResponse: func(r *http.Response) error {
-			dump, err := httputil.DumpResponse(r, o.Body)
-			if err != nil {
-				return err
-			}
+			dump, _ := httputil.DumpResponse(r, o.Body)
 			_, _ = fmt.Fprintln(o.Out, "<-", r.Request.Method, r.Request.URL)
 			_, _ = fmt.Fprintln(o.Out, string(dump))
 			return nil
