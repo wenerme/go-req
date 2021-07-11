@@ -10,9 +10,7 @@ import (
 
 var timeType = reflect.TypeOf(time.Time{})
 
-// convert non struct to values
-// for struct use https://github.com/google/go-querystring
-
+// ValuesOf convert anything to url.Values
 func ValuesOf(v interface{}) (url.Values, error) {
 	if v == nil {
 		return nil, nil

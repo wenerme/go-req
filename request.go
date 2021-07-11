@@ -33,6 +33,7 @@ type Request struct {
 	Extension Extension
 }
 
+// Hook phase for Extension
 type Hook struct {
 	Name          string
 	Order         int
@@ -43,10 +44,12 @@ type Hook struct {
 	Decode        func(ctx context.Context, body []byte, out interface{}) error
 }
 
+// Extension of Request
 type Extension struct {
 	Hooks []Hook
 }
 
+// With more hooks
 func (e *Extension) With(h ...Hook) {
 	e.Hooks = append(h, e.Hooks...)
 	sort.Slice(e.Hooks, func(i, j int) bool {
@@ -55,6 +58,7 @@ func (e *Extension) With(h ...Hook) {
 	})
 }
 
+// Decode body
 func (e Extension) Decode(ctx context.Context, body []byte, out interface{}) error {
 	for _, v := range e.Hooks {
 		if v.Decode != nil {
@@ -64,6 +68,7 @@ func (e Extension) Decode(ctx context.Context, body []byte, out interface{}) err
 	return errors.New("no decoder")
 }
 
+// Encode body
 func (e Extension) Encode(ctx context.Context, body interface{}) ([]byte, error) {
 	for _, v := range e.Hooks {
 		if v.Encode != nil {
@@ -73,6 +78,7 @@ func (e Extension) Encode(ctx context.Context, body interface{}) ([]byte, error)
 	return nil, errors.New("no encoder")
 }
 
+// OnRequest process request
 func (e Extension) OnRequest(r *http.Request) error {
 	for _, v := range e.Hooks {
 		if v.OnRequest != nil {
@@ -84,6 +90,7 @@ func (e Extension) OnRequest(r *http.Request) error {
 	return nil
 }
 
+// RoundTrip process request to response
 func (e Extension) RoundTrip(r *http.Request) (*http.Response, error) {
 	next := http.DefaultTransport
 	for _, v := range e.Hooks {
@@ -95,6 +102,7 @@ func (e Extension) RoundTrip(r *http.Request) (*http.Response, error) {
 	return resp, err
 }
 
+// OnResponse process response
 func (e Extension) OnResponse(r *http.Response) error {
 	for _, v := range e.Hooks {
 		if v.OnResponse != nil {
@@ -106,10 +114,12 @@ func (e Extension) OnResponse(r *http.Response) error {
 	return nil
 }
 
+// NewContext with Request
 func NewContext(ctx context.Context, r *Request) context.Context {
 	return context.WithValue(ctx, (*Request)(nil), r)
 }
 
+// FromContext get Request from context.Context
 func FromContext(ctx context.Context) *Request {
 	v := ctx.Value((*Request)(nil))
 	if v == nil {
@@ -118,11 +128,13 @@ func FromContext(ctx context.Context) *Request {
 	return v.(*Request)
 }
 
+// WithHook add Hook to Extension
 func (r Request) WithHook(h ...Hook) Request {
 	r.Extension.With(h...)
 	return r
 }
 
+// With override Request
 func (r Request) With(o Request) Request {
 	if o.Method != "" {
 		r.Method = o.Method
@@ -174,6 +186,7 @@ func (r Request) With(o Request) Request {
 	return r
 }
 
+// Do Request
 func (r Request) Do() (*http.Response, error) {
 	request, err := r.NewRequest()
 	if err != nil {
@@ -186,6 +199,8 @@ func (r Request) Do() (*http.Response, error) {
 	}
 	return response, err
 }
+
+// FetchBytes return bytes
 func (r Request) FetchBytes() ([]byte, *http.Response, error) {
 	response, err := r.Do()
 	if err != nil {
@@ -195,10 +210,14 @@ func (r Request) FetchBytes() ([]byte, *http.Response, error) {
 	body, err := io.ReadAll(response.Body)
 	return body, response, err
 }
+
+// FetchString return string
 func (r Request) FetchString() (string, *http.Response, error) {
 	body, response, err := r.FetchBytes()
 	return string(body), response, err
 }
+
+// Fetch decode body
 func (r Request) Fetch(out ...interface{}) (*http.Response, error) {
 	response, err := r.Do()
 	if err != nil {
@@ -221,6 +240,7 @@ func (r Request) Fetch(out ...interface{}) (*http.Response, error) {
 	return response, nil
 }
 
+// NewRequest create http.Request
 func (r Request) NewRequest() (*http.Request, error) {
 	if r.LastError != nil {
 		return nil, r.LastError

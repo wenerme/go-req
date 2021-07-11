@@ -19,6 +19,20 @@ func TestOverride(t *testing.T) {
 		)
 	}
 }
+func ExampleRequest() {
+	var out HelloResponse
+	_, err := req.Request{
+		BaseURL: "https://example.com",
+		URL:     "/hello",
+		Body: HelloRequest{
+			Name: "wener",
+		},
+		Options: []interface{}{req.JSONEncode, req.JSONDecode},
+	}.Fetch(&out)
+	if err != nil {
+		panic(err)
+	}
+}
 
 func TestUrlBuild(t *testing.T) {
 	{
@@ -118,10 +132,10 @@ func TestHookPreserve(t *testing.T) {
 		BaseURL: server.URL,
 	}
 	{
-		var out HelloReq
+		var out HelloRequest
 		_, err := r.With(req.Request{
 			URL:  "/echo",
-			Body: HelloReq{Name: "wener"},
+			Body: HelloRequest{Name: "wener"},
 		}).WithHook(req.JSONDecode, req.JSONEncode).Fetch(&out)
 		assert.NoError(t, err)
 		assert.Equal(t, "wener", out.Name)
@@ -129,7 +143,7 @@ func TestHookPreserve(t *testing.T) {
 	{
 		out, _, err := r.With(req.Request{
 			URL:  "/echo",
-			Body: HelloReq{Name: "wener"},
+			Body: HelloRequest{Name: "wener"},
 		}).WithHook(req.JSONEncode).FetchString()
 		assert.NoError(t, err)
 		assert.Equal(t, `{"Name":"wener"}`, out)
@@ -137,7 +151,7 @@ func TestHookPreserve(t *testing.T) {
 	{
 		out, _, err := r.With(req.Request{
 			URL:  "/echo",
-			Body: HelloReq{Name: "wener"},
+			Body: HelloRequest{Name: "wener"},
 		}).WithHook(req.FormEncode).FetchString()
 		assert.NoError(t, err)
 		assert.Equal(t, `Name=wener`, out)
@@ -145,7 +159,7 @@ func TestHookPreserve(t *testing.T) {
 	{
 		out, _, err := r.With(req.Request{
 			URL:   "/query",
-			Query: HelloReq{Name: "wener"},
+			Query: HelloRequest{Name: "wener"},
 		}).FetchString()
 		assert.NoError(t, err)
 		assert.Equal(t, `Name=wener`, out)
@@ -170,8 +184,11 @@ func TestRT(t *testing.T) {
 	assert.Nil(t, res)
 }
 
-type HelloReq struct {
+type HelloRequest struct {
 	Name string
+}
+type HelloResponse struct {
+	Hello string
 }
 
 type rtFunc func(*http.Request) (*http.Response, error)

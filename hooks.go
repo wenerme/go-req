@@ -10,6 +10,7 @@ import (
 	"os"
 )
 
+// JSONEncode encode use json.Marshal, add Content-Type
 var JSONEncode = Hook{
 	Name: "JsonEncode",
 	OnRequest: func(r *http.Request) error {
@@ -23,6 +24,7 @@ var JSONEncode = Hook{
 	},
 }
 
+// JSONDecode decode use json.Unmarshal
 var JSONDecode = Hook{
 	Name: "JsonDecode",
 	Decode: func(ctx context.Context, body []byte, out interface{}) error {
@@ -30,6 +32,7 @@ var JSONDecode = Hook{
 	},
 }
 
+// FormEncode encode use ValuesOf
 var FormEncode = Hook{
 	Name: "FormEncode",
 	OnRequest: func(r *http.Request) error {
@@ -47,6 +50,7 @@ var FormEncode = Hook{
 	},
 }
 
+// DebugOptions options for DebugHook
 type DebugOptions struct {
 	Body bool
 	Out  io.Writer

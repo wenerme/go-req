@@ -35,6 +35,7 @@ func cloneMapSliceString(h map[string][]string) map[string][]string {
 	return h2
 }
 
+// Values represent a map slice
 type Values map[string][]string
 
 // Get gets the first value associated with the given key.
