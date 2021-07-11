@@ -10,9 +10,9 @@
 
 [ci]: https://github.com/wenerme/go-req/actions/workflows/ci.yml
 
-[cov-img]: https://codecov.io/gh/wenerme/go-req/branch/master/graph/badge.svg
+[cov-img]: https://codecov.io/gh/wenerme/go-req/branch/main/graph/badge.svg
 
-[cov]: https://codecov.io/gh/wenerme/go-req/branch/master
+[cov]: https://codecov.io/gh/wenerme/go-req/branch/main
 
 [report-card-img]: https://goreportcard.com/badge/github.com/wenerme/go-req
 
