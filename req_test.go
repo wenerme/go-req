@@ -125,6 +125,16 @@ func TestHookPreserve(t *testing.T) {
 	}
 }
 
+func TestRT(t *testing.T) {
+	res, err := req.Request{
+		URL: "http://wener.me",
+	}.WithHook(req.UseRoundTripper(rtFunc(func(request *http.Request) (*http.Response, error) {
+		return nil, nil
+	}))).Do()
+	assert.NoError(t, err)
+	assert.Nil(t, res)
+}
+
 type HelloReq struct {
 	Name string
 }

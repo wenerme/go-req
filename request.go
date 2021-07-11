@@ -171,7 +171,7 @@ func (r Request) With(o Request) Request {
 	return r
 }
 
-func (r Request) Fetch(out ...interface{}) (*http.Response, error) {
+func (r Request) Do() (*http.Response, error) {
 	request, err := r.NewRequest()
 	if err != nil {
 		return nil, err
@@ -181,9 +181,15 @@ func (r Request) Fetch(out ...interface{}) (*http.Response, error) {
 	if err == nil {
 		err = re.Extension.OnResponse(response)
 	}
+	return response, err
+}
+func (r Request) Fetch(out ...interface{}) (*http.Response, error) {
+	response, err := r.Do()
 	if err != nil {
 		return nil, err
 	}
+	ctx := response.Request.Context()
+	re := FromContext(ctx)
 
 	defer response.Body.Close()
 	all, err := ioutil.ReadAll(response.Body)
@@ -191,7 +197,7 @@ func (r Request) Fetch(out ...interface{}) (*http.Response, error) {
 		return nil, err
 	}
 	for _, v := range out {
-		err = re.Extension.Decode(request.Context(), all, v)
+		err = re.Extension.Decode(ctx, all, v)
 		if err != nil {
 			return nil, err
 		}
