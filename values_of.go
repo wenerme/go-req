@@ -22,21 +22,25 @@ func ValuesOf(v interface{}) (url.Values, error) {
 		return mapStringToSliceString(tv), nil
 	}
 	rv := reflect.ValueOf(v)
-	for rv.Kind() == reflect.Ptr {
+	changed := false
+	for rv.Kind() == reflect.Ptr || rv.Kind() == reflect.Interface {
 		rv = rv.Elem()
+		changed = true
+	}
+	if changed {
+		return ValuesOf(rv.Interface())
 	}
 	if rv.Kind() == reflect.Struct {
 		// json-ize - use json tag
 		v, err := json.Marshal(v)
-		if err != nil {
-			return nil, err
+		if err == nil {
+			var m map[string]interface{}
+			err = json.Unmarshal(v, &m)
+			if err == nil {
+				return ValuesOf(m)
+			}
 		}
-		var m map[string]interface{}
-		err = json.Unmarshal(v, &m)
-		if err != nil {
-			return nil, err
-		}
-		return ValuesOf(m)
+		return nil, err
 	}
 	if rv.Kind() == reflect.Map {
 		m := make(url.Values)
@@ -66,15 +70,21 @@ func ValuesOf(v interface{}) (url.Values, error) {
 		}
 		return m, nil
 	}
-	return nil, fmt.Errorf("httpmore.QueryValues: unsupported type %T", v)
+	return nil, fmt.Errorf("ValuesOf: unsupported type %T", v)
 }
 
 func valueString(v reflect.Value) string {
-	for v.Kind() == reflect.Ptr {
+	if !v.IsValid() {
+		return ""
+	}
+	for v.Kind() == reflect.Ptr || v.Kind() == reflect.Interface {
 		if v.IsNil() {
 			return ""
 		}
 		v = v.Elem()
+	}
+	if v.IsZero() {
+		return ""
 	}
 
 	if v.Type() == timeType {

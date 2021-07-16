@@ -27,7 +27,7 @@ type Request struct {
 	Header   http.Header
 	Context  context.Context
 
-	Values    Values // Extra options for customized process - non string option use Context
+	Values    url.Values // Extra options for customized process - non string option use Context
 	LastError error
 	Options   []interface{}
 	Extension Extension
@@ -185,7 +185,7 @@ func (r Request) With(o Request) Request {
 	case o.Values != nil && r.Values == nil:
 		r.Values = o.Values
 	case o.Values != nil:
-		r.Values = r.Values.Clone().WithMerge(o.Values)
+		r.Values = mergeMapSliceString(r.Values, o.Values)
 	}
 	r.Options = append(r.Options, o.Options...)
 	return r

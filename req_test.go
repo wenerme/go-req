@@ -16,12 +16,6 @@ import (
 )
 
 func TestOverride(t *testing.T) {
-	{
-		assert.Equal(t,
-			req.Request{}.With(req.Request{Values: req.Values{}.Add("1", "2").Add("1", "3")}),
-			req.Request{Values: req.Values{}.Add("1", "2")}.With(req.Request{Values: req.Values{}.Add("1", "3")}),
-		)
-	}
 	assert.Equal(t, req.Request{
 		Method:  "POST",
 		BaseURL: "http//wener.me",
@@ -46,6 +40,7 @@ func TestOverride(t *testing.T) {
 		Context: context.Background(),
 	}))
 }
+
 func ExampleRequest() {
 	var out HelloResponse
 	_, err := req.Request{
@@ -106,6 +101,7 @@ func TestUrlBuild(t *testing.T) {
 	}
 }
 
+// nolint: funlen
 func TestHookPreserve(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
@@ -266,6 +262,7 @@ func TestRT(t *testing.T) {
 type HelloRequest struct {
 	Name string
 }
+
 type HelloResponse struct {
 	Hello string
 }
