@@ -41,6 +41,31 @@ func TestOverride(t *testing.T) {
 	}))
 }
 
+func TestReconcile(t *testing.T) {
+	{
+		r := req.Request{}
+		assert.NoError(t, r.Reconcile())
+		assert.Equal(t, req.Request{
+			Method:  "GET",
+			Context: context.Background(),
+		}, r)
+	}
+	{
+		// support Request as option
+		r := req.Request{
+			Options: []interface{}{
+				nil,
+				req.Request{Method: "POST"},
+			},
+		}
+		assert.NoError(t, r.Reconcile())
+		assert.Equal(t, req.Request{
+			Method:  "POST",
+			Context: context.Background(),
+		}, r)
+	}
+}
+
 func ExampleRequest() {
 	var out HelloResponse
 	_, err := req.Request{

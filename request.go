@@ -29,6 +29,12 @@ type Request struct {
 
 	Values    url.Values // Extra options for customized process - non string option use Context
 	LastError error
+	// Options support signatures
+	//   Request
+	//   func(*Request)
+	//   func(*Request) error
+	//   Hook
+	//   nil
 	Options   []interface{}
 	Extension Extension
 }
@@ -284,7 +290,12 @@ func (r *Request) Reconcile() error {
 		return r.LastError
 	}
 	for _, o := range r.Options {
+		if o == nil {
+			continue
+		}
 		switch v := o.(type) {
+		case Request:
+			*r = r.With(v)
 		case func(r *Request):
 			v(r)
 		case func(r *Request) error:
@@ -298,6 +309,7 @@ func (r *Request) Reconcile() error {
 			return r.LastError
 		}
 	}
+	r.Options = nil
 
 	if r.Method == "" {
 		r.Method = http.MethodGet
