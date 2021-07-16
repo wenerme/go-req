@@ -52,8 +52,9 @@ var FormEncode = Hook{
 
 // DebugOptions options for DebugHook
 type DebugOptions struct {
-	Body bool
-	Out  io.Writer
+	Disable bool      // Disable turn off debug
+	Body    bool      // Body enable dump http request and response's body
+	Out     io.Writer // Out debug output, default stderr
 }
 
 // DebugHook dump http.Request and http.Response
@@ -68,15 +69,19 @@ func DebugHook(o *DebugOptions) Hook {
 		Name:  "Debug",
 		Order: -100,
 		OnRequest: func(r *http.Request) error {
-			dump, _ := httputil.DumpRequestOut(r, o.Body)
-			_, _ = fmt.Fprintln(o.Out, "->", r.Method, r.URL)
-			_, _ = fmt.Fprintln(o.Out, string(dump))
+			if !o.Disable {
+				dump, _ := httputil.DumpRequestOut(r, o.Body)
+				_, _ = fmt.Fprintln(o.Out, "->", r.Method, r.URL)
+				_, _ = fmt.Fprintln(o.Out, string(dump))
+			}
 			return nil
 		},
 		OnResponse: func(r *http.Response) error {
-			dump, _ := httputil.DumpResponse(r, o.Body)
-			_, _ = fmt.Fprintln(o.Out, "<-", r.Request.Method, r.Request.URL)
-			_, _ = fmt.Fprintln(o.Out, string(dump))
+			if !o.Disable {
+				dump, _ := httputil.DumpResponse(r, o.Body)
+				_, _ = fmt.Fprintln(o.Out, "<-", r.Request.Method, r.Request.URL)
+				_, _ = fmt.Fprintln(o.Out, string(dump))
+			}
 			return nil
 		},
 	}

@@ -152,6 +152,9 @@ func (r Request) With(o Request) Request {
 	if o.Body != nil {
 		r.Body = o.Body
 	}
+	if o.GetBody != nil {
+		r.GetBody = o.GetBody
+	}
 
 	if o.Context != nil {
 		r.Context = o.Context
@@ -178,10 +181,12 @@ func (r Request) With(o Request) Request {
 	}
 
 	r.Header = mergeMapSliceString(r.Header, o.Header)
-	if r.Values == nil {
-		r.Values = Values{}
+	switch {
+	case o.Values != nil && r.Values == nil:
+		r.Values = o.Values
+	case o.Values != nil:
+		r.Values = r.Values.Clone().WithMerge(o.Values)
 	}
-	r.Values = r.Values.Clone().WithMerge(o.Values)
 	r.Options = append(r.Options, o.Options...)
 	return r
 }

@@ -1,9 +1,13 @@
 package req_test
 
 import (
+	"bytes"
+	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/wenerme/go-req"
@@ -18,6 +22,29 @@ func TestOverride(t *testing.T) {
 			req.Request{Values: req.Values{}.Add("1", "2")}.With(req.Request{Values: req.Values{}.Add("1", "3")}),
 		)
 	}
+	assert.Equal(t, req.Request{
+		Method:  "POST",
+		BaseURL: "http//wener.me",
+		Context: context.Background(),
+		Query: map[string][]string{
+			"a": {"a"},
+			"b": {"b"},
+		},
+		RawBody: []byte("HELLO"),
+	}, req.Request{
+		Method: "GET",
+		Query: url.Values{
+			"a": []string{"a"},
+		},
+	}.With(req.Request{
+		Method:  "POST",
+		BaseURL: "http//wener.me",
+		RawBody: []byte("HELLO"),
+		Query: url.Values{
+			"b": []string{"b"},
+		},
+		Context: context.Background(),
+	}))
 }
 func ExampleRequest() {
 	var out HelloResponse
@@ -110,11 +137,17 @@ func TestHookPreserve(t *testing.T) {
 
 	{
 		run := false
+		empty := bytes.Buffer{}
 		_, err := req.Request{
 			BaseURL: server.URL,
 			Options: []interface{}{
+				req.DebugHook(nil),
 				req.DebugHook(&req.DebugOptions{
 					Body: true,
+				}),
+				req.DebugHook(&req.DebugOptions{
+					Disable: true,
+					Out:     &empty,
 				}),
 				req.Hook{
 					OnResponse: func(r *http.Response) error {
@@ -126,6 +159,7 @@ func TestHookPreserve(t *testing.T) {
 		}.Fetch()
 		assert.NoError(t, err)
 		assert.True(t, run)
+		assert.Equal(t, 0, empty.Len())
 	}
 
 	r := req.Request{
@@ -139,6 +173,16 @@ func TestHookPreserve(t *testing.T) {
 		}).WithHook(req.JSONDecode, req.JSONEncode).Fetch(&out)
 		assert.NoError(t, err)
 		assert.Equal(t, "wener", out.Name)
+	}
+	{
+		out, _, err := r.With(req.Request{
+			URL: "/echo",
+			GetBody: func() (io.ReadCloser, error) {
+				return io.NopCloser(strings.NewReader("HELLO")), nil
+			},
+		}).WithHook(req.JSONDecode, req.JSONEncode).FetchString()
+		assert.NoError(t, err)
+		assert.Equal(t, "HELLO", out)
 	}
 	{
 		out, _, err := r.With(req.Request{
@@ -171,6 +215,41 @@ func TestHookPreserve(t *testing.T) {
 		}).FetchString()
 		assert.NoError(t, err)
 		assert.Equal(t, `a=1`, out)
+	}
+	{
+		// test options
+		_, _, err := r.With(req.Request{
+			URL: "/query",
+			Options: []interface{}{
+				func(r *req.Request) {},
+				func(r *req.Request) error {
+					return nil
+				},
+			},
+		}).FetchString()
+		assert.NoError(t, err)
+	}
+	{
+		// test option error
+		_, _, err := r.With(req.Request{
+			URL: "/query",
+			Options: []interface{}{
+				func(r *req.Request) error {
+					return io.EOF
+				},
+			},
+		}).FetchString()
+		assert.Equal(t, io.EOF, err)
+	}
+	{
+		// test invalid option
+		_, _, err := r.With(req.Request{
+			URL: "/query",
+			Options: []interface{}{
+				func() {},
+			},
+		}).FetchString()
+		assert.Error(t, err)
 	}
 }
 
