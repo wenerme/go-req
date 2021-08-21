@@ -23,7 +23,7 @@ linters:
     - gocyclo
     - gofmt
     - goimports
-    - golint
+    - revive
     - gomnd
     - gosec
     # - interfacer

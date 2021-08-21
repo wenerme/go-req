@@ -68,7 +68,7 @@ func TestReconcile(t *testing.T) {
 
 func ExampleRequest() {
 	var out HelloResponse
-	_, err := req.Request{
+	err := req.Request{
 		BaseURL: "https://example.com",
 		URL:     "/hello",
 		Body: HelloRequest{
@@ -159,7 +159,7 @@ func TestHookPreserve(t *testing.T) {
 	{
 		run := false
 		empty := bytes.Buffer{}
-		_, err := req.Request{
+		err := req.Request{
 			BaseURL: server.URL,
 			Options: []interface{}{
 				req.DebugHook(nil),
@@ -188,12 +188,16 @@ func TestHookPreserve(t *testing.T) {
 	}
 	{
 		var out HelloRequest
-		_, err := r.With(req.Request{
+		var request *http.Request
+		var response *http.Response
+		err := r.With(req.Request{
 			URL:  "/echo",
 			Body: HelloRequest{Name: "wener"},
-		}).WithHook(req.JSONDecode, req.JSONEncode).Fetch(&out)
+		}).WithHook(req.JSONDecode, req.JSONEncode).Fetch(&out, &request, &response)
 		assert.NoError(t, err)
 		assert.Equal(t, "wener", out.Name)
+		assert.NotNil(t, request)
+		assert.NotNil(t, response)
 	}
 	{
 		out, _, err := r.With(req.Request{

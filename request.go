@@ -229,10 +229,10 @@ func (r Request) FetchString() (string, *http.Response, error) {
 }
 
 // Fetch decode body
-func (r Request) Fetch(out ...interface{}) (*http.Response, error) {
+func (r Request) Fetch(out ...interface{}) error {
 	response, err := r.Do()
 	if err != nil {
-		return nil, err
+		return err
 	}
 	ctx := response.Request.Context()
 	re := FromContext(ctx)
@@ -240,15 +240,21 @@ func (r Request) Fetch(out ...interface{}) (*http.Response, error) {
 	defer response.Body.Close()
 	all, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	for _, v := range out {
+		switch o := v.(type) {
+		case **http.Request:
+			*o = response.Request
+		case **http.Response:
+			*o = response
+		}
 		err = re.Extension.Decode(ctx, all, v)
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
-	return response, nil
+	return nil
 }
 
 // NewRequest create http.Request
