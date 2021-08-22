@@ -66,6 +66,62 @@ func TestReconcile(t *testing.T) {
 	}
 }
 
+func TestReconcileHandleOption(t *testing.T) {
+	cnt := 0
+	r := req.Request{}
+	{
+		rr := r.With(req.Request{
+			Options: []interface{}{1},
+		})
+		assert.Error(t, rr.Reconcile())
+	}
+	r.Extension.With(req.Hook{HandleOption: func(r *req.Request, o interface{}) (bool, error) {
+		v, ok := o.(int)
+		if !ok {
+			return false, nil
+		}
+		cnt += v
+		return true, nil
+	}})
+	r = r.With(req.Request{
+		Options: []interface{}{1},
+	})
+	assert.NoError(t, r.Reconcile())
+	assert.Equal(t, 1, cnt)
+}
+
+func TestReconcileOptionsOrder(t *testing.T) {
+	cnt := 0
+	r := req.Request{
+		Options: []interface{}{
+			func(r *req.Request) {
+				assert.Equal(t, cnt, 2)
+				cnt++
+			},
+			func(r *req.Request) {
+				assert.Equal(t, cnt, 3)
+				cnt++
+			},
+		},
+	}
+	r = r.With(req.Request{
+		Options: []interface{}{
+			func(r *req.Request) {
+				// first call
+				assert.Equal(t, cnt, 0)
+				cnt++
+			},
+			func(r *req.Request) {
+				// first call
+				assert.Equal(t, cnt, 1)
+				cnt++
+			},
+		},
+	})
+	assert.NoError(t, r.Reconcile())
+	assert.Equal(t, 4, cnt)
+}
+
 func ExampleRequest() {
 	var out HelloResponse
 	err := req.Request{
