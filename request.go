@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"io/ioutil"
 	stdlog "log"
 	"net/http"
 	"net/url"
@@ -193,7 +192,8 @@ func (r Request) With(o Request) Request {
 	case o.Values != nil:
 		r.Values = mergeMapSliceString(r.Values, o.Values)
 	}
-	r.Options = append(r.Options, o.Options...)
+	// run current option first
+	r.Options = append(o.Options, r.Options...)
 	return r
 }
 
@@ -230,18 +230,13 @@ func (r Request) FetchString() (string, *http.Response, error) {
 
 // Fetch decode body
 func (r Request) Fetch(out ...interface{}) error {
-	response, err := r.Do()
+	all, response, err := r.FetchBytes()
 	if err != nil {
 		return err
 	}
 	ctx := response.Request.Context()
 	re := FromContext(ctx)
 
-	defer response.Body.Close()
-	all, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		return err
-	}
 	for _, v := range out {
 		switch o := v.(type) {
 		case **http.Request:

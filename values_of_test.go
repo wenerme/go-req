@@ -14,6 +14,7 @@ func TestValuesOf(t *testing.T) {
 		e   url.Values
 	}{
 		{v: nil, e: nil},
+		{v: url.Values{}, e: url.Values{}},
 		{v: (interface{})(nil), e: nil},
 		{get: func() interface{} {
 			var m map[string][]string

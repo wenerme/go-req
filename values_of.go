@@ -16,6 +16,8 @@ func ValuesOf(v interface{}) (url.Values, error) {
 		return nil, nil
 	}
 	switch tv := v.(type) {
+	case url.Values:
+		return tv, nil
 	case map[string][]string:
 		return tv, nil
 	case map[string]string:
