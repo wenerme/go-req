@@ -194,6 +194,14 @@ func (r *Request) Reconcile() error {
 	if r.LastError != nil {
 		return r.LastError
 	}
+	// reverse hook order - later hook get higher priority
+	l := len(r.Options)
+	for i := range r.Options {
+		o := r.Options[l-i-1]
+		if v, ok := o.(Hook); ok {
+			r.Extension.With(v)
+		}
+	}
 	for _, o := range r.Options {
 		if o == nil {
 			continue
@@ -206,7 +214,6 @@ func (r *Request) Reconcile() error {
 		case func(r *Request) error:
 			r.LastError = v(r)
 		case Hook:
-			r.Extension.With(v)
 		default:
 			var handled bool
 			handled, r.LastError = r.Extension.HandleOption(r, o)

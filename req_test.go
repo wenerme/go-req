@@ -283,6 +283,18 @@ func TestHookPreserve(t *testing.T) {
 	}
 	{
 		out, _, err := r.With(req.Request{
+			Options: []interface{}{req.JSONEncode},
+		}).With(req.Request{
+			URL:  "/echo",
+			Body: HelloRequest{Name: "wener"},
+			// FormEncode is higher than JSONEncode
+			Options: []interface{}{req.FormEncode},
+		}).FetchString()
+		assert.NoError(t, err)
+		assert.Equal(t, `Name=wener`, out)
+	}
+	{
+		out, _, err := r.With(req.Request{
 			URL:   "/query",
 			Query: HelloRequest{Name: "wener"},
 		}).FetchString()
