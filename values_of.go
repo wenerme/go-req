@@ -29,6 +29,9 @@ func ValuesOf(v interface{}) (url.Values, error) {
 		rv = rv.Elem()
 		changed = true
 	}
+	if !rv.IsValid() {
+		return nil, nil
+	}
 	if changed {
 		return ValuesOf(rv.Interface())
 	}

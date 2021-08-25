@@ -7,13 +7,18 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+type ReqP struct {
+}
+
 func TestValuesOf(t *testing.T) {
+	var nilP *ReqP
 	for _, test := range []struct {
 		v   interface{}
 		get func() interface{}
 		e   url.Values
 	}{
 		{v: nil, e: nil},
+		{v: nilP, e: nil},
 		{v: url.Values{}, e: url.Values{}},
 		{v: (interface{})(nil), e: nil},
 		{get: func() interface{} {
