@@ -5,7 +5,7 @@ import "context"
 type contextKey string
 
 func (c contextKey) String() string {
-	return "req.ContextKey(" + string(c) + ")"
+	return "req.contextKey(" + string(c) + ")"
 }
 
 const RequestContextKey = contextKey("Request")

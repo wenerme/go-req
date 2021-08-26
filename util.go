@@ -9,7 +9,7 @@ func mergeMapSliceString(a map[string][]string, b map[string][]string) map[strin
 	}
 	c := cloneMapSliceString(a)
 	for k, v := range b {
-		c[k] = append(c[k], v...)
+		c[k] = append(v, c[k]...)
 	}
 	return c
 }

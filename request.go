@@ -81,10 +81,10 @@ func (r Request) With(o Request) Request {
 			if b, be := ValuesOf(o.Query); be == nil {
 				r.Query = mergeMapSliceString(a, b)
 			} else {
-				stdlog.Printf("httmore.RequestInit.Merge: convert query failed %v", be)
+				stdlog.Printf("req.Request.With: convert query failed %v", be)
 			}
 		} else {
-			stdlog.Printf("httmore.RequestInit.Merge: convert query failed %v", ae)
+			stdlog.Printf("req.Request.With: convert query failed %v", ae)
 			r.Query = o.Query
 		}
 	}

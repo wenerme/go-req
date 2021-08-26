@@ -7,8 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type ReqP struct {
-}
+type ReqP struct{}
 
 func TestValuesOf(t *testing.T) {
 	var nilP *ReqP

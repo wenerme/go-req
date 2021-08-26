@@ -194,6 +194,9 @@ func TestHookPreserve(t *testing.T) {
 	mux.HandleFunc("/query", func(writer http.ResponseWriter, request *http.Request) {
 		_, _ = writer.Write([]byte(request.URL.RawQuery))
 	})
+	mux.HandleFunc("/echo/head", func(writer http.ResponseWriter, request *http.Request) {
+		_, _ = writer.Write([]byte(request.Header.Get("Echo")))
+	})
 	server := httptest.NewServer(mux)
 	defer server.Close()
 	{
@@ -292,6 +295,27 @@ func TestHookPreserve(t *testing.T) {
 		}).FetchString()
 		assert.NoError(t, err)
 		assert.Equal(t, `Name=wener`, out)
+	}
+	{
+		// test header
+		rr := r.With(req.Request{
+			URL: "/echo/head",
+			Header: map[string][]string{
+				"echo": {"OK"},
+			},
+		})
+		out, _, err := rr.FetchString()
+		assert.NoError(t, err)
+		assert.Equal(t, `OK`, out)
+
+		out, _, err = rr.With(req.Request{
+			Options: []interface{}{req.JSONEncode},
+			Header: map[string][]string{
+				"echo": {"Override"},
+			},
+		}).FetchString()
+		assert.NoError(t, err)
+		assert.Equal(t, `Override`, out)
 	}
 	{
 		out, _, err := r.With(req.Request{
