@@ -122,21 +122,6 @@ func TestReconcileOptionsOrder(t *testing.T) {
 	assert.Equal(t, 4, cnt)
 }
 
-func ExampleRequest() {
-	var out HelloResponse
-	err := req.Request{
-		BaseURL: "https://example.com",
-		URL:     "/hello",
-		Body: HelloRequest{
-			Name: "wener",
-		},
-		Options: []interface{}{req.JSONEncode, req.JSONDecode},
-	}.Fetch(&out)
-	if err != nil {
-		panic(err)
-	}
-}
-
 func TestUrlBuild(t *testing.T) {
 	{
 		r, err := req.Request{
@@ -378,14 +363,6 @@ func TestRT(t *testing.T) {
 	}))).Do()
 	assert.NoError(t, err)
 	assert.Nil(t, res)
-}
-
-type HelloRequest struct {
-	Name string
-}
-
-type HelloResponse struct {
-	Hello string
 }
 
 type rtFunc func(*http.Request) (*http.Response, error)
