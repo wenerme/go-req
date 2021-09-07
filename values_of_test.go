@@ -3,6 +3,7 @@ package req
 import (
 	"net/url"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -11,6 +12,7 @@ type ReqP struct{}
 
 func TestValuesOf(t *testing.T) {
 	var nilP *ReqP
+	now := time.Now()
 	for _, test := range []struct {
 		v   interface{}
 		get func() interface{}
@@ -35,6 +37,16 @@ func TestValuesOf(t *testing.T) {
 		}, e: url.Values{
 			"a": []string{""},
 			"b": []string{""},
+		}},
+		{v: map[string]interface{}{
+			"t": now,
+		}, e: url.Values{
+			"t": []string{now.Format(time.RFC3339)},
+		}},
+		{v: map[string]interface{}{
+			"v": []interface{}{nil, "v"},
+		}, e: url.Values{
+			"v": []string{"", "v"},
 		}},
 		{v: map[string]interface{}{
 			"a": 1,
@@ -64,4 +76,11 @@ func TestValuesOf(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, test.e, v)
 	}
+
+	_, err := ValuesOf(1)
+	assert.Error(t, err)
+	_, err = ValuesOf(1.1)
+	assert.Error(t, err)
+	_, err = ValuesOf("")
+	assert.Error(t, err)
 }
