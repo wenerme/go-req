@@ -13,6 +13,7 @@ import (
 	"github.com/pkg/errors"
 )
 
+// Request is declarative HTTP client instance
 type Request struct {
 	Method   string
 	BaseURL  string
@@ -164,6 +165,12 @@ func (r Request) NewRequest() (*http.Request, error) {
 	if err := r.Reconcile(); err != nil {
 		return nil, err
 	}
+	if r.RawBody == nil && r.GetBody == nil && r.Body != nil {
+		r.RawBody, r.LastError = r.Extension.Encode(r.Context, r.Body)
+	}
+	if r.LastError != nil {
+		return nil, r.LastError
+	}
 
 	req, err := http.NewRequestWithContext(NewContext(r.Context, &r), r.Method, r.URL, nil)
 	if err != nil {
@@ -266,9 +273,6 @@ func (r *Request) Reconcile() error {
 
 	if r.Context == nil {
 		r.Context = context.Background()
-	}
-	if r.RawBody == nil && r.GetBody == nil && r.Body != nil {
-		r.RawBody, r.LastError = r.Extension.Encode(r.Context, r.Body)
 	}
 
 	return r.LastError

@@ -16,7 +16,6 @@ linters:
     # - bodyclose
     - depguard
     - dogsled
-    # - dupl # fp 很多 - 因为处理逻辑类似
     - funlen
     - goconst
     - gocritic
@@ -54,6 +53,8 @@ linters-settings:
       - golang.org/x/net/context
       # - github.com/sirupsen/logrus
       - github.com/prometheus/common/log
+#  gocyclo:
+#    min-complexity: 15
 
 issues:
   # Excluding configuration per-path, per-linter, per-text and per-source

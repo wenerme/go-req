@@ -8,6 +8,7 @@ func (c contextKey) String() string {
 	return "req.contextKey(" + string(c) + ")"
 }
 
+// RequestContextKey for Request instance
 const RequestContextKey = contextKey("Request")
 
 // NewContext with Request

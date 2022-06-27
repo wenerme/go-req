@@ -1,13 +1,18 @@
 package req
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/fs"
+	"mime/multipart"
 	"net/http"
 	"net/http/httputil"
 	"os"
+
+	"github.com/pkg/errors"
 )
 
 // JSONEncode encode use json.Marshal, add Content-Type
@@ -47,6 +52,35 @@ var FormEncode = Hook{
 			return nil, err
 		}
 		return []byte(v.Encode()), nil
+	},
+}
+
+var MultipartFormEncode = Hook{
+	Name: "MultipartFormEncode",
+	OnRequest: func(r *http.Request) (err error) {
+		if r.Body == nil {
+			return errors.New("MultipartFormEncode need file body")
+		}
+		h := multipart.FileHeader{}
+		switch f := r.Body.(type) {
+		// case []fs.File:
+		case fs.File:
+			info, err := f.Stat()
+			if err != nil {
+				return err
+			}
+			h.Filename = info.Name()
+			h.Size = info.Size()
+		default:
+			return errors.Errorf("unsupported file type: %T", r.Body)
+		}
+		r.GetBody = func() (io.ReadCloser, error) {
+			b := &bytes.Buffer{}
+			// writer := multipart.NewWriter(b)
+			// writer.WriteField()
+			return io.NopCloser(b), nil
+		}
+		return
 	},
 }
 
