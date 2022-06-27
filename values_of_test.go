@@ -19,6 +19,7 @@ func TestValuesOf(t *testing.T) {
 		e   url.Values
 	}{
 		{v: nil, e: nil},
+		{v: map[string]interface{}{"v": 1000000000018}, e: url.Values{"v": []string{"1000000000018"}}},
 		{v: nilP, e: nil},
 		{v: url.Values{}, e: url.Values{}},
 		{v: (interface{})(nil), e: nil},

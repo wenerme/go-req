@@ -86,9 +86,11 @@ var MultipartFormEncode = Hook{
 
 // DebugOptions options for DebugHook
 type DebugOptions struct {
-	Disable bool      // Disable turn off debug
-	Body    bool      // Body enable dump http request and response's body
-	Out     io.Writer // Out debug output, default stderr
+	Disable   bool                        // Disable turn off debug
+	Body      bool                        // Body enable dump http request and response's body
+	Out       io.Writer                   // Out debug output, default stderr
+	ErrorOnly bool                        // ErrorOnly enable dump error only
+	IsError   func(r *http.Response) bool // IsError check if response is error, default is http.StatusOK < 400
 }
 
 // DebugHook dump http.Request and http.Response
@@ -111,7 +113,12 @@ func DebugHook(o *DebugOptions) Hook {
 			return nil
 		},
 		OnResponse: func(r *http.Response) error {
-			if !o.Disable {
+			switch {
+			case
+				o.Disable,
+				o.ErrorOnly && o.IsError != nil && !o.IsError(r),
+				o.ErrorOnly && o.IsError == nil && r.StatusCode < 400:
+			default:
 				dump, _ := httputil.DumpResponse(r, o.Body)
 				_, _ = fmt.Fprintln(o.Out, "<-", r.Request.Method, r.Request.URL)
 				_, _ = fmt.Fprintln(o.Out, string(dump))
