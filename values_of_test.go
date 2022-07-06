@@ -10,6 +10,10 @@ import (
 
 type ReqP struct{}
 
+type Par struct {
+	A int `json:"a"`
+}
+
 func TestValuesOf(t *testing.T) {
 	var nilP *ReqP
 	now := time.Now()
@@ -19,6 +23,7 @@ func TestValuesOf(t *testing.T) {
 		e   url.Values
 	}{
 		{v: nil, e: nil},
+		{v: &Par{A: 1000000000018}, e: url.Values{"a": []string{"1000000000018"}}},
 		{v: map[string]interface{}{"v": 1000000000018}, e: url.Values{"v": []string{"1000000000018"}}},
 		{v: nilP, e: nil},
 		{v: url.Values{}, e: url.Values{}},

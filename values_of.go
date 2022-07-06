@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"reflect"
+	"strconv"
 	"time"
 )
 
@@ -64,12 +65,13 @@ func ValuesOf(v interface{}) (url.Values, error) {
 					continue
 				}
 			}
-			// no empty check
-			if sv.Kind() == reflect.Slice || sv.Kind() == reflect.Array {
+			switch {
+			case sv.Kind() == reflect.Slice || sv.Kind() == reflect.Array:
+				// no empty check
 				for i := 0; i < sv.Len(); i++ {
 					m.Add(fmt.Sprint(k.Interface()), valueString(sv.Index(i)))
 				}
-			} else {
+			default:
 				m.Set(fmt.Sprint(k.Interface()), valueString(sv))
 			}
 		}
@@ -96,7 +98,14 @@ func valueString(v reflect.Value) string {
 		t := v.Interface().(time.Time)
 		return t.Format(time.RFC3339)
 	}
-
+	if v.CanFloat() {
+		// prevent 1.000000000018e+12
+		val := v.Float()
+		if val == float64(int64(val)) {
+			return strconv.FormatInt(int64(val), 10) //nolint:gomnd
+		}
+		return fmt.Sprintf("%f", val)
+	}
 	return fmt.Sprint(v.Interface())
 }
 
