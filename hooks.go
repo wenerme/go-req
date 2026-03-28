@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"os"
+	"time"
 )
 
 // JSONEncode encode use json.Marshal, add Content-Type
@@ -200,3 +201,50 @@ func UseRoundTripper(rt http.RoundTripper) Hook {
 		return rt
 	}}
 }
+
+// WithTimeout sets a timeout on the request context.
+// If the request already has a context with a shorter deadline, that deadline is kept.
+func WithTimeout(d time.Duration) Hook {
+	return Hook{
+		Name: "Timeout",
+		OnRequest: func(r *http.Request) error {
+			ctx := r.Context()
+			if deadline, ok := ctx.Deadline(); ok && time.Until(deadline) < d {
+				return nil // existing deadline is shorter, keep it
+			}
+			ctx, cancel := context.WithTimeout(ctx, d)
+			// cancel will be called when response body is closed or GC'd
+			// store cancel in request context for cleanup
+			*r = *r.WithContext(withCancelFunc(ctx, cancel))
+			return nil
+		},
+	}
+}
+
+type cancelKey struct{}
+
+func withCancelFunc(ctx context.Context, cancel context.CancelFunc) context.Context {
+	return context.WithValue(ctx, cancelKey{}, cancel)
+}
+
+// FailOnStatus returns an error if the response status code matches any of the given predicates.
+// Common usage: FailOnStatus(IsHTTPError) to fail on 4xx/5xx.
+func FailOnStatus(check func(statusCode int) bool) Hook {
+	return Hook{
+		Name: "FailOnStatus",
+		OnResponse: func(r *http.Response) error {
+			if check(r.StatusCode) {
+				body, _ := io.ReadAll(r.Body)
+				r.Body = io.NopCloser(bytes.NewReader(body))
+				return fmt.Errorf("HTTP %d: %s", r.StatusCode, http.StatusText(r.StatusCode))
+			}
+			return nil
+		},
+	}
+}
+
+// IsHTTPError returns true for status codes >= 400.
+func IsHTTPError(code int) bool { return code >= 400 }
+
+// IsServerError returns true for status codes >= 500.
+func IsServerError(code int) bool { return code >= 500 }

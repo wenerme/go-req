@@ -343,6 +343,60 @@ func TestHTTPBin_WithComposition(t *testing.T) {
 	assert.Contains(t, ua, "Go-http-client")
 }
 
+func TestHTTPBin_WithTimeout(t *testing.T) {
+	// Should succeed — 200ms is enough for /get
+	var out struct {
+		URL string `json:"url"`
+	}
+	err := httpbinReq().With(req.Request{
+		URL:     "/get",
+		Options: []any{req.WithTimeout(5 * time.Second)},
+	}).Fetch(&out)
+	require.NoError(t, err)
+	assert.Contains(t, out.URL, "httpbin.org")
+
+	// Should timeout — 100ms is too short for /delay/3
+	_, err = httpbinReq().With(req.Request{
+		URL:     "/delay/3",
+		Options: []any{req.WithTimeout(100 * time.Millisecond)},
+	}).Do()
+	require.Error(t, err)
+}
+
+func TestHTTPBin_FailOnStatus(t *testing.T) {
+	// 200 should pass
+	resp, err := httpbinReq().With(req.Request{
+		URL:     "/status/200",
+		Options: []any{req.FailOnStatus(req.IsHTTPError)},
+	}).Do()
+	require.NoError(t, err)
+	resp.Body.Close()
+
+	// 404 should fail
+	_, err = httpbinReq().With(req.Request{
+		URL:     "/status/404",
+		Options: []any{req.FailOnStatus(req.IsHTTPError)},
+	}).Do()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "HTTP 404")
+
+	// 500 with IsServerError
+	_, err = httpbinReq().With(req.Request{
+		URL:     "/status/500",
+		Options: []any{req.FailOnStatus(req.IsServerError)},
+	}).Do()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "HTTP 500")
+
+	// 400 should pass IsServerError (only checks >= 500)
+	resp, err = httpbinReq().With(req.Request{
+		URL:     "/status/400",
+		Options: []any{req.FailOnStatus(req.IsServerError)},
+	}).Do()
+	require.NoError(t, err)
+	resp.Body.Close()
+}
+
 func TestHTTPBin_GetBody(t *testing.T) {
 	content := []byte(`{"streaming": true}`)
 	var out struct {
