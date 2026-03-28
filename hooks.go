@@ -11,8 +11,6 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"os"
-
-	"github.com/pkg/errors"
 )
 
 // JSONEncode encode use json.Marshal, add Content-Type
@@ -24,7 +22,7 @@ var JSONEncode = Hook{
 		}
 		return nil
 	},
-	Encode: func(ctx context.Context, body interface{}) ([]byte, error) {
+	Encode: func(ctx context.Context, body any) ([]byte, error) {
 		return json.Marshal(body)
 	},
 }
@@ -32,7 +30,7 @@ var JSONEncode = Hook{
 // JSONDecode decode use json.Unmarshal
 var JSONDecode = Hook{
 	Name: "JsonDecode",
-	Decode: func(ctx context.Context, body []byte, out interface{}) error {
+	Decode: func(ctx context.Context, body []byte, out any) error {
 		return json.Unmarshal(body, out)
 	},
 }
@@ -46,7 +44,7 @@ var FormEncode = Hook{
 		}
 		return nil
 	},
-	Encode: func(ctx context.Context, body interface{}) ([]byte, error) {
+	Encode: func(ctx context.Context, body any) ([]byte, error) {
 		v, err := ValuesOf(body)
 		if err != nil {
 			return nil, err
@@ -55,32 +53,100 @@ var FormEncode = Hook{
 	},
 }
 
+// MultipartFile represents a file to be uploaded via multipart form
+type MultipartFile struct {
+	// FieldName is the form field name (default: "file")
+	FieldName string
+	// Filename is the filename to use in the multipart header
+	Filename string
+	// Reader provides the file content
+	Reader io.Reader
+	// Fields are extra form fields to include
+	Fields map[string]string
+}
+
+// MultipartFormEncode encodes a MultipartFile or fs.File as multipart/form-data.
+// Body must be *MultipartFile or fs.File.
 var MultipartFormEncode = Hook{
 	Name: "MultipartFormEncode",
-	OnRequest: func(r *http.Request) (err error) {
-		if r.Body == nil {
-			return errors.New("MultipartFormEncode need file body")
-		}
-		h := multipart.FileHeader{}
-		switch f := r.Body.(type) {
-		// case []fs.File:
+	Encode: func(ctx context.Context, body any) ([]byte, error) {
+		buf := &bytes.Buffer{}
+		writer := multipart.NewWriter(buf)
+
+		var fieldName, filename string
+		var reader io.Reader
+		var fields map[string]string
+
+		switch f := body.(type) {
+		case *MultipartFile:
+			fieldName = f.FieldName
+			filename = f.Filename
+			reader = f.Reader
+			fields = f.Fields
 		case fs.File:
 			info, err := f.Stat()
 			if err != nil {
+				return nil, fmt.Errorf("stat file: %w", err)
+			}
+			filename = info.Name()
+			reader = f
+		default:
+			return nil, fmt.Errorf("MultipartFormEncode: unsupported body type %T, use *MultipartFile or fs.File", body)
+		}
+
+		if fieldName == "" {
+			fieldName = "file"
+		}
+		if filename == "" {
+			filename = "upload"
+		}
+
+		// Write extra fields first
+		for k, v := range fields {
+			if err := writer.WriteField(k, v); err != nil {
+				return nil, fmt.Errorf("write field %s: %w", k, err)
+			}
+		}
+
+		// Write file part
+		part, err := writer.CreateFormFile(fieldName, filename)
+		if err != nil {
+			return nil, fmt.Errorf("create form file: %w", err)
+		}
+		if _, err := io.Copy(part, reader); err != nil {
+			return nil, fmt.Errorf("copy file content: %w", err)
+		}
+		if err := writer.Close(); err != nil {
+			return nil, fmt.Errorf("close multipart writer: %w", err)
+		}
+
+		// Store content type in context for OnRequest to pick up
+		return buf.Bytes(), nil
+	},
+	OnRequest: func(r *http.Request) error {
+		// Detect multipart content and set proper boundary
+		if r.Body != nil && r.Header.Get("Content-Type") == "" {
+			// Re-encode to get boundary — need to parse from body
+			// Simpler: just check if body looks like multipart
+			body, err := io.ReadAll(r.Body)
+			if err != nil {
 				return err
 			}
-			h.Filename = info.Name()
-			h.Size = info.Size()
-		default:
-			return errors.Errorf("unsupported file type: %T", r.Body)
+			if bytes.HasPrefix(body, []byte("--")) {
+				// Extract boundary from first line
+				idx := bytes.IndexByte(body, '\r')
+				if idx < 0 {
+					idx = bytes.IndexByte(body, '\n')
+				}
+				if idx > 2 {
+					boundary := string(body[2:idx])
+					r.Header.Set("Content-Type", "multipart/form-data; boundary="+boundary)
+				}
+			}
+			r.Body = io.NopCloser(bytes.NewReader(body))
+			r.ContentLength = int64(len(body))
 		}
-		r.GetBody = func() (io.ReadCloser, error) {
-			b := &bytes.Buffer{}
-			// writer := multipart.NewWriter(b)
-			// writer.WriteField()
-			return io.NopCloser(b), nil
-		}
-		return
+		return nil
 	},
 }
 

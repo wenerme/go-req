@@ -2,10 +2,9 @@ package req
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"sort"
-
-	"github.com/pkg/errors"
 )
 
 // Hook phases for Extension
@@ -15,9 +14,9 @@ type Hook struct {
 	OnRequest     func(r *http.Request) error
 	OnResponse    func(r *http.Response) error
 	HandleRequest func(next http.RoundTripper) http.RoundTripper
-	HandleOption  func(r *Request, o interface{}) (bool, error)
-	Encode        func(ctx context.Context, body interface{}) ([]byte, error)
-	Decode        func(ctx context.Context, body []byte, out interface{}) error
+	HandleOption  func(r *Request, o any) (bool, error)
+	Encode        func(ctx context.Context, body any) ([]byte, error)
+	Decode        func(ctx context.Context, body []byte, out any) error
 }
 
 // Extension of Request
@@ -35,7 +34,7 @@ func (e *Extension) With(h ...Hook) {
 }
 
 // Decode body
-func (e Extension) Decode(ctx context.Context, body []byte, out interface{}) error {
+func (e Extension) Decode(ctx context.Context, body []byte, out any) error {
 	for _, v := range e.Hooks {
 		if v.Decode != nil {
 			return v.Decode(ctx, body, out)
@@ -45,7 +44,7 @@ func (e Extension) Decode(ctx context.Context, body []byte, out interface{}) err
 }
 
 // Encode body
-func (e Extension) Encode(ctx context.Context, body interface{}) ([]byte, error) {
+func (e Extension) Encode(ctx context.Context, body any) ([]byte, error) {
 	for _, v := range e.Hooks {
 		if v.Encode != nil {
 			return v.Encode(ctx, body)
@@ -91,7 +90,7 @@ func (e Extension) OnResponse(r *http.Response) error {
 }
 
 // HandleOption process unknown options
-func (e Extension) HandleOption(r *Request, o interface{}) (bool, error) {
+func (e Extension) HandleOption(r *Request, o any) (bool, error) {
 	for _, v := range e.Hooks {
 		if v.HandleOption != nil {
 			if handle, err := v.HandleOption(r, o); err != nil {

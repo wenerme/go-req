@@ -12,7 +12,7 @@ func ExampleRequest() {
 	// reusable client
 	client := req.Request{
 		BaseURL: "https://httpbin.org",
-		Options: []interface{}{req.JSONEncode, req.JSONDecode},
+		Options: []any{req.JSONEncode, req.JSONDecode},
 	}
 
 	// dump request and response with body
@@ -43,7 +43,7 @@ func ExampleRequest() {
 		Body: HelloRequest{
 			Name: "go-req",
 		},
-		Options: []interface{}{req.FormEncode},
+		Options: []any{req.FormEncode},
 	}).Fetch(&out)
 	if err != nil {
 		panic(err)

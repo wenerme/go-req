@@ -53,7 +53,7 @@ func TestReconcile(t *testing.T) {
 	{
 		// support Request as option
 		r := req.Request{
-			Options: []interface{}{
+			Options: []any{
 				nil,
 				req.Request{Method: "POST"},
 			},
@@ -71,11 +71,11 @@ func TestReconcileHandleOption(t *testing.T) {
 	r := req.Request{}
 	{
 		rr := r.With(req.Request{
-			Options: []interface{}{1},
+			Options: []any{1},
 		})
 		assert.Error(t, rr.Reconcile())
 	}
-	r.Extension.With(req.Hook{HandleOption: func(r *req.Request, o interface{}) (bool, error) {
+	r.Extension.With(req.Hook{HandleOption: func(r *req.Request, o any) (bool, error) {
 		v, ok := o.(int)
 		if !ok {
 			return false, nil
@@ -84,7 +84,7 @@ func TestReconcileHandleOption(t *testing.T) {
 		return true, nil
 	}})
 	r = r.With(req.Request{
-		Options: []interface{}{1},
+		Options: []any{1},
 	})
 	assert.NoError(t, r.Reconcile())
 	assert.Equal(t, 1, cnt)
@@ -93,7 +93,7 @@ func TestReconcileHandleOption(t *testing.T) {
 func TestReconcileOptionsOrder(t *testing.T) {
 	cnt := 0
 	r := req.Request{
-		Options: []interface{}{
+		Options: []any{
 			func(r *req.Request) {
 				assert.Equal(t, cnt, 2)
 				cnt++
@@ -105,7 +105,7 @@ func TestReconcileOptionsOrder(t *testing.T) {
 		},
 	}
 	r = r.With(req.Request{
-		Options: []interface{}{
+		Options: []any{
 			func(r *req.Request) {
 				// first call
 				assert.Equal(t, cnt, 0)
@@ -157,7 +157,7 @@ func TestUrlBuild(t *testing.T) {
 		r, err := req.Request{
 			BaseURL: "https://wener.me",
 			URL:     "/token",
-			Query: map[string]interface{}{
+			Query: map[string]any{
 				"name": "wener",
 				"age":  18,
 			},
@@ -187,7 +187,7 @@ func TestHookPreserve(t *testing.T) {
 	{
 		request, err := req.Request{
 			BaseURL: "https://wener.me",
-			Options: []interface{}{
+			Options: []any{
 				req.Hook{
 					OnRequest: func(r *http.Request) error {
 						r.Header.Set("Run", "true")
@@ -205,7 +205,7 @@ func TestHookPreserve(t *testing.T) {
 		empty := bytes.Buffer{}
 		err := req.Request{
 			BaseURL: server.URL,
-			Options: []interface{}{
+			Options: []any{
 				req.DebugHook(nil),
 				req.DebugHook(&req.DebugOptions{
 					Body: true,
@@ -271,12 +271,12 @@ func TestHookPreserve(t *testing.T) {
 	}
 	{
 		out, _, err := r.With(req.Request{
-			Options: []interface{}{req.JSONEncode},
+			Options: []any{req.JSONEncode},
 		}).With(req.Request{
 			URL:  "/echo",
 			Body: HelloRequest{Name: "wener"},
 			// FormEncode is higher than JSONEncode
-			Options: []interface{}{req.FormEncode},
+			Options: []any{req.FormEncode},
 		}).FetchString()
 		assert.NoError(t, err)
 		assert.Equal(t, `Name=wener`, out)
@@ -294,7 +294,7 @@ func TestHookPreserve(t *testing.T) {
 		assert.Equal(t, `OK`, out)
 
 		out, _, err = rr.With(req.Request{
-			Options: []interface{}{req.JSONEncode},
+			Options: []any{req.JSONEncode},
 			Header: map[string][]string{
 				"echo": {"Override"},
 			},
@@ -322,7 +322,7 @@ func TestHookPreserve(t *testing.T) {
 		// test options
 		_, _, err := r.With(req.Request{
 			URL: "/query",
-			Options: []interface{}{
+			Options: []any{
 				func(r *req.Request) {},
 				func(r *req.Request) error {
 					return nil
@@ -335,7 +335,7 @@ func TestHookPreserve(t *testing.T) {
 		// test option error
 		_, _, err := r.With(req.Request{
 			URL: "/query",
-			Options: []interface{}{
+			Options: []any{
 				func(r *req.Request) error {
 					return io.EOF
 				},
@@ -347,7 +347,7 @@ func TestHookPreserve(t *testing.T) {
 		// test invalid option
 		_, _, err := r.With(req.Request{
 			URL: "/query",
-			Options: []interface{}{
+			Options: []any{
 				func() {},
 			},
 		}).FetchString()

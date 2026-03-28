@@ -10,7 +10,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/pkg/errors"
+	"fmt"
 )
 
 // Request is declarative HTTP client instance
@@ -18,11 +18,11 @@ type Request struct {
 	Method   string
 	BaseURL  string
 	URL      string
-	Query    interface{}
+	Query    any
 	RawQuery string
 	RawBody  []byte
 	GetBody  func() (io.ReadCloser, error)
-	Body     interface{}
+	Body     any
 	Header   http.Header
 	Context  context.Context
 
@@ -34,7 +34,7 @@ type Request struct {
 	//   func(*Request) error
 	//   Hook
 	//   nil
-	Options   []interface{}
+	Options   []any
 	Extension Extension
 }
 
@@ -134,7 +134,7 @@ func (r Request) FetchString() (string, *http.Response, error) {
 }
 
 // Fetch decode body
-func (r Request) Fetch(out ...interface{}) error {
+func (r Request) Fetch(out ...any) error {
 	all, response, err := r.FetchBytes()
 	if err != nil {
 		return err
@@ -225,7 +225,7 @@ func (r *Request) Reconcile() error {
 			var handled bool
 			handled, r.LastError = r.Extension.HandleOption(r, o)
 			if !handled {
-				r.LastError = errors.New("invalid option type: " + reflect.TypeOf(o).String())
+				r.LastError = fmt.Errorf("invalid option type: %s", reflect.TypeOf(o).String())
 			}
 		}
 		if r.LastError != nil {
@@ -240,7 +240,7 @@ func (r *Request) Reconcile() error {
 	if r.RawQuery == "" && r.Query != nil {
 		v, err := ValuesOf(r.Query)
 		if err != nil {
-			return errors.Wrap(err, "build query values")
+			return fmt.Errorf("build query values: %w", err)
 		}
 		r.RawQuery = v.Encode()
 	}
@@ -256,13 +256,13 @@ func (r *Request) Reconcile() error {
 
 		parsed, err := url.Parse(u)
 		if err != nil {
-			return errors.Wrap(err, "invalid url")
+			return fmt.Errorf("invalid url: %w", err)
 		}
 
 		if r.RawQuery != "" {
 			v, err := url.ParseQuery(r.RawQuery)
 			if err != nil {
-				return errors.Wrap(err, "parse query")
+				return fmt.Errorf("parse query: %w", err)
 			}
 			parsed.RawQuery = (url.Values)(mergeMapSliceString(v, parsed.Query())).Encode()
 			u = parsed.String()

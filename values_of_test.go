@@ -18,24 +18,24 @@ func TestValuesOf(t *testing.T) {
 	var nilP *ReqP
 	now := time.Now()
 	for _, test := range []struct {
-		v   interface{}
-		get func() interface{}
+		v   any
+		get func() any
 		e   url.Values
 	}{
 		{v: nil, e: nil},
 		{v: &Par{A: 1000000000018}, e: url.Values{"a": []string{"1000000000018"}}},
-		{v: map[string]interface{}{"v": 1000000000018}, e: url.Values{"v": []string{"1000000000018"}}},
+		{v: map[string]any{"v": 1000000000018}, e: url.Values{"v": []string{"1000000000018"}}},
 		{v: nilP, e: nil},
 		{v: url.Values{}, e: url.Values{}},
-		{v: (interface{})(nil), e: nil},
-		{get: func() interface{} {
+		{v: (any)(nil), e: nil},
+		{get: func() any {
 			var m map[string][]string
 			return &m
 		}, e: nil},
-		{get: func() interface{} {
+		{get: func() any {
 			var vv map[string][]string
 
-			m := map[string]interface{}{
+			m := map[string]any{
 				"a": nil,
 				"b": &vv,
 			}
@@ -44,17 +44,17 @@ func TestValuesOf(t *testing.T) {
 			"a": []string{""},
 			"b": []string{""},
 		}},
-		{v: map[string]interface{}{
+		{v: map[string]any{
 			"t": now,
 		}, e: url.Values{
 			"t": []string{now.Format(time.RFC3339)},
 		}},
-		{v: map[string]interface{}{
-			"v": []interface{}{nil, "v"},
+		{v: map[string]any{
+			"v": []any{nil, "v"},
 		}, e: url.Values{
 			"v": []string{"", "v"},
 		}},
-		{v: map[string]interface{}{
+		{v: map[string]any{
 			"a": 1,
 			"b": "b",
 		}, e: url.Values{

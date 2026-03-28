@@ -12,7 +12,7 @@ import (
 var timeType = reflect.TypeOf(time.Time{})
 
 // ValuesOf convert anything to url.Values
-func ValuesOf(v interface{}) (url.Values, error) {
+func ValuesOf(v any) (url.Values, error) {
 	if v == nil {
 		return nil, nil
 	}
@@ -40,7 +40,7 @@ func ValuesOf(v interface{}) (url.Values, error) {
 		// json-ize - use json tag
 		v, err := json.Marshal(v)
 		if err == nil {
-			var m map[string]interface{}
+			var m map[string]any
 			err = json.Unmarshal(v, &m)
 			if err == nil {
 				return ValuesOf(m)
